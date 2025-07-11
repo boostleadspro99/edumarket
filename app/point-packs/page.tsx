@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Coins, CreditCard, Shield, Zap } from 'lucide-react';
 
 export default function PointPacksPage() {
-  const pointPacks = usePointPacks();
+  const { pointPacks, loading } = usePointPacks();
 
   const benefits = [
     {
@@ -50,15 +50,32 @@ export default function PointPacksPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Point Packs Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {pointPacks.map((pack, index) => (
-            <PointPackCard 
-              key={pack.id} 
-              pointPack={pack}
-              isPopular={index === 1} // Make the second pack popular
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-full"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto mb-4"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/3 mx-auto"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            {pointPacks.map((pack, index) => (
+              <PointPackCard 
+                key={pack.id} 
+                pointPack={pack}
+                isPopular={index === 1} // Rendre le deuxième pack populaire
+              />
+            ))}
+          </div>
+        )}
 
         {/* Benefits Section */}
         <div className="bg-white rounded-lg shadow-sm border p-8 mb-12">

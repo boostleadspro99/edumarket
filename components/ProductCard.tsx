@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth';
+import { usePurchaseProduct } from '@/lib/hooks';
 import { Coins, User, Download, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,9 +14,9 @@ interface ProductCardProps {
     id: string;
     title: string;
     description: string;
-    pricePoints: number;
+    price_points: number;
     seller: { name: string };
-    fileUrl?: string;
+    file_url?: string | null;
   };
   showPurchaseButton?: boolean;
   showDownloadButton?: boolean;
@@ -26,59 +27,54 @@ export default function ProductCard({
   showPurchaseButton = true, 
   showDownloadButton = false 
 }: ProductCardProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const { user, updateBalance } = useAuth();
+  const { user } = useAuth();
+  const { purchaseProduct, loading } = usePurchaseProduct();
   const { toast } = useToast();
 
   const handlePurchase = async () => {
     if (!user) {
       toast({
-        title: 'Authentication Required',
-        description: 'Please login to purchase products.',
+        title: 'Authentification requise',
+        description: 'Veuillez vous connecter pour acheter des produits.',
         variant: 'destructive',
       });
       return;
     }
 
-    if (user.balancePoints < product.pricePoints) {
-      toast({
-        title: 'Insufficient Points',
-        description: 'You need more points to purchase this product.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      // Simulate purchase API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update user balance
-      updateBalance(-product.pricePoints);
+      await purchaseProduct(product as any);
       
       toast({
-        title: 'Purchase Successful!',
-        description: `You've purchased "${product.title}" for ${product.pricePoints} points.`,
+        title: 'Achat réussi !',
+        description: `Vous avez acheté "${product.title}" pour ${product.price_points} points.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: 'Purchase Failed',
-        description: 'Something went wrong. Please try again.',
+        title: 'Échec de l\'achat',
+        description: error.message || 'Une erreur est survenue. Veuillez réessayer.',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleDownload = () => {
-    // In a real app, this would be a secure download link
+  const handleDownload = async () => {
+    if (!product.file_url) {
+      toast({
+        title: 'Fichier non disponible',
+        description: 'Le fichier n\'est pas encore disponible au téléchargement.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Implémenter le téléchargement sécurisé avec URL signée
     toast({
-      title: 'Download Started',
-      description: `Downloading "${product.title}"...`,
+      title: 'Téléchargement démarré',
+      description: `Téléchargement de "${product.title}"...`,
     });
   };
+
+  const canAfford = user && user.balance_points >= product.price_points;
 
   return (
     <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-200">
@@ -89,7 +85,7 @@ export default function ProductCard({
           </CardTitle>
           <Badge variant="secondary" className="ml-2 flex items-center">
             <Coins className="w-3 h-3 mr-1" />
-            {product.pricePoints}
+            {product.price_points}
           </Badge>
         </div>
         <CardDescription className="line-clamp-3">
@@ -100,7 +96,7 @@ export default function ProductCard({
       <CardContent className="flex-1">
         <div className="flex items-center text-sm text-gray-600">
           <User className="w-4 h-4 mr-2" />
-          <span>by {product.seller.name}</span>
+          <span>par {product.seller.name}</span>
         </div>
       </CardContent>
       
@@ -112,22 +108,26 @@ export default function ProductCard({
             variant="outline"
           >
             <Download className="w-4 h-4 mr-2" />
-            Download PDF
+            Télécharger PDF
           </Button>
         )}
         
         {showPurchaseButton && (
           <Button 
             onClick={handlePurchase}
-            disabled={isLoading || !user || user.balancePoints < product.pricePoints}
+            disabled={loading || !user || !canAfford}
             className="w-full"
           >
-            {isLoading ? (
-              'Processing...'
+            {loading ? (
+              'Traitement...'
+            ) : !user ? (
+              'Connexion requise'
+            ) : !canAfford ? (
+              `Insuffisant (${product.price_points} points requis)`
             ) : (
               <>
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                Purchase ({product.pricePoints} points)
+                Acheter ({product.price_points} points)
               </>
             )}
           </Button>
